@@ -1,8 +1,8 @@
 import React from 'react'
 
-const Navbar = () => {
+const Dashboard = () => {
   return (
-    <div className="navbar bg-base-300 shadow-sm">
+    <div className="Dashboard bg-base-300 shadow-sm">
       
   <div className="flex flex-1 items-center gap-2">
   <img className="w-10 h-10" src="dev_logo.jpeg" alt="Logo" />
@@ -17,7 +17,7 @@ const Navbar = () => {
        
         <div className="w-10 rounded-full">
           <img
-            alt="Tailwind CSS Navbar component"
+            alt="Tailwind CSS Dashboard component"
             src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
         </div>
       </div>
@@ -39,4 +39,4 @@ const Navbar = () => {
   )
 }
 
-export default Navbar;
+export default Dashboard;
