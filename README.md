@@ -94,6 +94,7 @@ components/ └── index.css
 -   Update API URLs if backend runs on a different port.
 -   Place static assets in the public directory.
 
+
 ## License
 
 This project is intended for learning and development purposes.
