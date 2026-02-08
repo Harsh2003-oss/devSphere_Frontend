@@ -1,16 +1,99 @@
-# React + Vite
+# devSphere Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend application for **devSphere**, a developer networking platform
+inspired by swipe-based matching. It helps developers connect,
+collaborate, and discover projects based on skills, interests, and tech
+stack compatibility.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This frontend is built using **React (Vite)** and **Tailwind CSS**,
+integrating with a Node.js backend API for authentication, feed
+management, and connection requests.
 
-## React Compiler
+The application focuses on a responsive UI with swipe-based interactions
+adapted for developer collaboration.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+-   React (Vite)
+-   Tailwind CSS
+-   React Router DOM
+-   Axios
+-   JWT Authentication
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+
+### Authentication
+
+-   Login and signup with JWT-based authentication
+-   Form validation and secure credential handling
+-   Protected routes with automatic redirection
+
+### Developer Feed
+
+-   Swipe-based developer discovery interface
+-   Send “interested” or “ignored” connection requests
+-   Profile cards displaying photo, bio, skills, and basic info
+-   Interactive drag/swipe animations
+
+### User Experience
+
+-   Responsive mobile-first layout
+-   Smooth transitions and loading states
+-   Persistent login using localStorage
+
+## Installation
+
+### Prerequisites
+
+-   Node.js (v14 or higher)
+-   npm or yarn
+-   Backend server running locally or remotely
+
+### Setup
+
+Clone the repository:
+
+git clone <repo-url> cd devSphere-frontend
+
+Install dependencies:
+
+npm install
+
+Run development server:
+
+npm run dev
+
+## Backend Integration
+
+Expected API endpoints:
+
+Authentication:
+
+POST /api/auth/signup  
+POST /api/auth/login
+
+Feed & Requests:
+
+GET /api/feed?page=1&limit=20  
+POST /api/request/send/:status/:toUserId
+
+JWT tokens are stored in localStorage and sent in headers:
+
+Authorization: Bearer <token>
+
+## Project Structure
+
+src/ ├── App.jsx ├── Login.jsx ├── Signup.jsx ├── Feed.jsx ├──
+components/ └── index.css
+
+## Notes
+
+-   Ensure backend CORS configuration is correct.
+-   Update API URLs if backend runs on a different port.
+-   Place static assets in the public directory.
+
+## License
+
+This project is intended for learning and development purposes.
