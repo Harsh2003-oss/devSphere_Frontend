@@ -26,7 +26,8 @@ const Login = () => {
       });
 
       const data = await response.json();
-
+localStorage.setItem('token', data.token);
+localStorage.setItem('userId', data.user._id); // Add this line
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -35,7 +36,7 @@ const Login = () => {
         setError(data.error || 'Login failed');
       }
     } catch (err) {
-      setError('Network error');
+      setError('Invalid Credentials');
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col">
       <div className="bg-gradient-to-r from-pink-500 to-orange-500 px-6 py-4 text-center">
-        <img className="w-16 h-16 mx-auto mb-3" src="dev_logo.jpeg" alt="Logo" />
+        <img className="w-16 h-16 mx-auto rounded-4xl mb-3" src="dev_logo.jpeg" alt="Logo" />
         <h1 className="text-3xl font-bold text-white">devSphere</h1>
       </div>
 

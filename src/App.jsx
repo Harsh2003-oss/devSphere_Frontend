@@ -5,6 +5,7 @@ import Signup from './components/Signup'
 import Feed from './components/Feed'
 import Profile from './components/Profile'
 import Connections from './components/Connections'
+import Chat from './components/Chat'
 
 
 const App = () => {
@@ -17,6 +18,7 @@ const App = () => {
         <Route path='/feed' element = {<Feed />} />
         <Route path='/profile' element = {<Profile />} />
          <Route path='/connections' element = {<Connections />} />
+         <Route path = '/chat/:userId' element={<Chat />} />
      </Routes>
      </BrowserRouter> 
     </>
