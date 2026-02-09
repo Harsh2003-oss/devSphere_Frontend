@@ -4,24 +4,31 @@ import { useNavigate } from 'react-router-dom';
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  
+  // Edit Profile States
+  const [editForm, setEditForm] = useState({
     firstName: '',
     lastName: '',
     age: '',
     gender: '',
+    photoUrl: '',
     about: '',
-    skills: '',
-    photoUrl: ''
+    skills: ''
   });
-  const [passwordData, setPasswordData] = useState({
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+
+  // Change Password States
+  const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
-    newPassword: ''
+    newPassword: '',
+    confirmPassword: ''
   });
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -36,153 +43,162 @@ const Profile = () => {
       }
 
       const response = await fetch('http://localhost:3000/api/view', {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data);
-        setFormData({
+        
+        // Set edit form with current values
+        setEditForm({
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           age: data.age || '',
           gender: data.gender || '',
+          photoUrl: data.photoUrl || '',
           about: data.about || '',
-          skills: data.skills?.join(', ') || '',
-          photoUrl: data.photoUrl || ''
+          skills: data.skills ? data.skills.join(', ') : ''
         });
       } else {
         navigate('/login');
       }
     } catch (err) {
-      setError('Failed to load profile');
+      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handlePasswordChange = (e) => {
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = async () => {
-    setError('');
-    setSuccess('');
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditError('');
+    setEditSuccess('');
 
     try {
       const token = localStorage.getItem('token');
       
       // Validate on frontend before sending
-      if (formData.firstName.trim().length < 4) {
-        setError('First name must be at least 4 characters');
+      if (editForm.firstName.trim().length < 4) {
+        setEditError('First name must be at least 4 characters');
         return;
       }
       
-      if (formData.age < 18) {
-        setError('Age must be at least 18');
+      if (editForm.age && editForm.age < 18) {
+        setEditError('Age must be at least 18');
         return;
       }
       
-      // Prepare clean data - only include fields that are valid
+      // Convert skills string to array
+      const skillsArray = editForm.skills
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
       const updateData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        age: parseInt(formData.age),
-        about: formData.about.trim(),
-        skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean)
+        firstName: editForm.firstName.trim(),
+        lastName: editForm.lastName.trim(),
+        age: editForm.age ? parseInt(editForm.age) : undefined,
+        about: editForm.about.trim(),
+        skills: skillsArray
       };
 
       // Only include gender if it's a valid value
-      if (formData.gender && ['male', 'female', 'other'].includes(formData.gender)) {
-        updateData.gender = formData.gender;
+      if (editForm.gender && ['male', 'female', 'other'].includes(editForm.gender)) {
+        updateData.gender = editForm.gender;
       }
 
-      // Only include photoUrl if it's a valid URL and not the default
-      if (formData.photoUrl && formData.photoUrl.trim()) {
-        const url = formData.photoUrl.trim();
+      // Only include photoUrl if it's a valid URL
+      if (editForm.photoUrl && editForm.photoUrl.trim()) {
+        const url = editForm.photoUrl.trim();
         try {
           new URL(url); // Validate URL format
           updateData.photoUrl = url;
         } catch {
-          setError('Invalid photo URL');
+          setEditError('Invalid photo URL');
           return;
         }
       }
 
-      console.log('Sending update data:', updateData); // Debug log
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => 
+        updateData[key] === undefined && delete updateData[key]
+      );
 
       const response = await fetch('http://localhost:3000/api/edit', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
-        // Backend sends JSON on success
         const data = await response.json();
-        setUser(data.data);
-        setFormData({
-          firstName: data.data.firstName || '',
-          lastName: data.data.lastName || '',
-          age: data.data.age || '',
-          gender: data.data.gender || '',
-          about: data.data.about || '',
-          skills: data.data.skills?.join(', ') || '',
-          photoUrl: data.data.photoUrl || ''
-        });
-        setSuccess('Profile updated successfully!');
-        setIsEditing(false);
-        setTimeout(() => setSuccess(''), 3000);
+        setEditSuccess('Profile updated successfully!');
+        setTimeout(() => {
+          setShowEditModal(false);
+          fetchProfile();
+        }, 1500);
       } else {
-        // Backend sends plain text on error
         const errorText = await response.text();
-        setError(errorText || 'Update failed');
+        setEditError(errorText || 'Failed to update profile');
       }
     } catch (err) {
-      setError('Network error: ' + err.message);
+      setEditError('Network error: ' + err.message);
     }
   };
 
-  const handlePasswordUpdate = async (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
+      
       const response = await fetch('http://localhost:3000/api/updatePassword', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(passwordData),
+        body: JSON.stringify({
+          oldPassword: passwordForm.oldPassword,
+          newPassword: passwordForm.newPassword,
+        }),
       });
 
-      const data = await response.text(); // Backend sends text
-
       if (response.ok) {
-        setSuccess(data || 'Password updated!');
-        setShowPasswordModal(false);
-        setPasswordData({ oldPassword: '', newPassword: '' });
-        setTimeout(() => setSuccess(''), 3000);
+        const data = await response.text();
+        setPasswordSuccess(data || 'Password updated successfully!');
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+        }, 1500);
       } else {
-        setError(data || 'Password update failed');
+        const data = await response.text();
+        setPasswordError(data || 'Failed to update password');
       }
     } catch (err) {
-      setError('Network error: ' + err.message);
+      setPasswordError('Network error: ' + err.message);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
     navigate('/login');
   };
 
@@ -211,196 +227,82 @@ const Profile = () => {
         </button>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 mx-4 mt-4 rounded">
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 mx-4 mt-4 rounded">
-          {error}
-        </div>
-      )}
-
       {/* Profile Content */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Profile Photo */}
-        <div className="text-center mb-6">
-          <div className="relative inline-block">
-            <img
-              src={user?.photoUrl || 'https://geographyandyou.com/images/user-profile.png'}
-              alt="Profile"
-              className="w-32 h-32 rounded-full object-cover border-4 border-zinc-700"
-            />
-          </div>
-          <h2 className="text-white text-2xl font-bold mt-4">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        {/* Profile Photo & Name */}
+        <div className="text-center mb-8">
+          <img
+            src={user?.photoUrl || 'https://geographyandyou.com/images/user-profile.png'}
+            alt={user?.firstName}
+            className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-pink-500"
+            onError={(e) => {
+              e.target.src = 'https://geographyandyou.com/images/user-profile.png';
+            }}
+          />
+          <h1 className="text-white text-3xl font-bold mb-1">
             {user?.firstName} {user?.lastName}
-          </h2>
+          </h1>
           <p className="text-gray-400">{user?.email}</p>
         </div>
 
-        {/* Edit/Save Buttons */}
-        <div className="flex gap-3 mb-6">
-          {!isEditing ? (
-            <>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex-1 bg-gradient-to-r from-pink-500 to-orange-500 text-white font-semibold py-3 rounded"
-              >
-                Edit Profile
-              </button>
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                className="flex-1 bg-zinc-800 text-white font-semibold py-3 rounded border border-zinc-700"
-              >
-                Change Password
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleSave}
-                className="flex-1 bg-gradient-to-r from-pink-500 to-orange-500 text-white font-semibold py-3 rounded"
-              >
-                Save Changes
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  fetchProfile();
-                }}
-                className="flex-1 bg-zinc-800 text-white font-semibold py-3 rounded border border-zinc-700"
-              >
-                Cancel
-              </button>
-            </>
-          )}
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="bg-gradient-to-r from-pink-500 to-orange-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-orange-600 transition"
+          >
+            Edit Profile
+          </button>
+          <button
+            onClick={() => setShowPasswordModal(true)}
+            className="bg-zinc-800 text-white py-3 rounded-lg font-semibold hover:bg-zinc-700 transition"
+          >
+            Change Password
+          </button>
         </div>
 
-        {/* Profile Info */}
-        <div className="bg-zinc-800 rounded-lg p-6 space-y-4">
+        {/* Profile Details */}
+        <div className="bg-zinc-800 rounded-lg p-6 space-y-4 mb-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-gray-400 text-sm">First Name</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  minLength={4}
-                  maxLength={50}
-                  required
-                  className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500"
-                  placeholder="At least 4 characters"
-                />
-              ) : (
-                <p className="text-white mt-1">{user?.firstName}</p>
-              )}
+              <p className="text-gray-400 text-sm mb-1">First Name</p>
+              <p className="text-white font-semibold">{user?.firstName || 'Not set'}</p>
             </div>
             <div>
-              <label className="text-gray-400 text-sm">Last Name</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500"
-                />
-              ) : (
-                <p className="text-white mt-1">{user?.lastName}</p>
-              )}
+              <p className="text-gray-400 text-sm mb-1">Last Name</p>
+              <p className="text-white font-semibold">{user?.lastName || 'Not set'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-gray-400 text-sm">Age</label>
-              {isEditing ? (
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  min={18}
-                  required
-                  className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500"
-                />
-              ) : (
-                <p className="text-white mt-1">{user?.age}</p>
-              )}
+              <p className="text-gray-400 text-sm mb-1">Age</p>
+              <p className="text-white font-semibold">{user?.age || 'Not set'}</p>
             </div>
             <div>
-              <label className="text-gray-400 text-sm">Gender</label>
-              {isEditing ? (
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500"
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              ) : (
-                <p className="text-white mt-1 capitalize">{user?.gender || 'Not set'}</p>
-              )}
+              <p className="text-gray-400 text-sm mb-1">Gender</p>
+              <p className="text-white font-semibold capitalize">{user?.gender || 'Not set'}</p>
             </div>
           </div>
 
           <div>
-            <label className="text-gray-400 text-sm">About</label>
-            {isEditing ? (
-              <textarea
-                name="about"
-                value={formData.about}
-                onChange={handleChange}
-                rows="3"
-                className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500 resize-none"
-              />
-            ) : (
-              <p className="text-white mt-1">{user?.about}</p>
-            )}
+            <p className="text-gray-400 text-sm mb-1">About</p>
+            <p className="text-white">{user?.about || 'No bio yet'}</p>
           </div>
 
-          <div>
-            <label className="text-gray-400 text-sm">Skills</label>
-            {isEditing ? (
-              <input
-                type="text"
-                name="skills"
-                value={formData.skills}
-                onChange={handleChange}
-                placeholder="Comma separated"
-                className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500"
-              />
-            ) : (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {user?.skills?.map((skill, i) => (
-                  <span key={i} className="bg-zinc-700 text-gray-300 px-3 py-1 rounded-full text-sm">
+          {user?.skills && user.skills.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Skills</p>
+              <div className="flex flex-wrap gap-2">
+                {user.skills.map((skill, i) => (
+                  <span
+                    key={i}
+                    className="bg-zinc-700 text-gray-300 px-3 py-1 rounded-full text-sm"
+                  >
                     {skill}
                   </span>
                 ))}
               </div>
-            )}
-          </div>
-
-          {isEditing && (
-            <div>
-              <label className="text-gray-400 text-sm">Photo URL</label>
-              <input
-                type="url"
-                name="photoUrl"
-                value={formData.photoUrl}
-                onChange={handleChange}
-                className="w-full mt-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-pink-500"
-                placeholder="https://example.com/photo.jpg"
-              />
-              <p className="text-gray-500 text-xs mt-1">Must be a valid URL</p>
             </div>
           )}
         </div>
@@ -408,55 +310,195 @@ const Profile = () => {
         {/* Logout Button */}
         <button
           onClick={handleLogout}
-          className="w-full mt-6 bg-zinc-800 text-red-400 font-semibold py-3 rounded border border-zinc-700 hover:bg-zinc-700"
+          className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition"
         >
           Logout
         </button>
       </div>
 
-      {/* Password Change Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
-          <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-white text-xl font-bold mb-4">Change Password</h3>
-            <form onSubmit={handlePasswordUpdate} className="space-y-4">
-              <input
-                type="password"
-                name="oldPassword"
-                value={passwordData.oldPassword}
-                onChange={handlePasswordChange}
-                placeholder="Current password"
-                required
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded text-white placeholder-gray-400 focus:outline-none focus:border-pink-500"
-              />
-              <input
-                type="password"
-                name="newPassword"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                placeholder="New password"
-                required
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded text-white placeholder-gray-400 focus:outline-none focus:border-pink-500"
-              />
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  className="flex-1 bg-gradient-to-r from-pink-500 to-orange-500 text-white font-semibold py-3 rounded"
-                >
-                  Update
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    setPasswordData({ oldPassword: '', newPassword: '' });
-                    setError('');
-                  }}
-                  className="flex-1 bg-zinc-700 text-white font-semibold py-3 rounded"
-                >
-                  Cancel
-                </button>
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-4 z-50" onClick={() => setShowEditModal(false)}>
+          <div className="bg-zinc-800 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-zinc-800 border-b border-zinc-700 p-4 flex items-center justify-between">
+              <h3 className="text-white text-xl font-bold">Edit Profile</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              {editError && (
+                <div className="p-3 bg-red-500/20 border border-red-500 rounded text-red-400 text-sm">
+                  {editError}
+                </div>
+              )}
+              {editSuccess && (
+                <div className="p-3 bg-green-500/20 border border-green-500 rounded text-green-400 text-sm">
+                  {editSuccess}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-sm block mb-2">First Name *</label>
+                  <input
+                    type="text"
+                    value={editForm.firstName}
+                    onChange={(e) => setEditForm({...editForm, firstName: e.target.value})}
+                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    required
+                    minLength={4}
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm block mb-2">Last Name</label>
+                  <input
+                    type="text"
+                    value={editForm.lastName}
+                    onChange={(e) => setEditForm({...editForm, lastName: e.target.value})}
+                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-sm block mb-2">Age</label>
+                  <input
+                    type="number"
+                    value={editForm.age}
+                    onChange={(e) => setEditForm({...editForm, age: e.target.value})}
+                    min="18"
+                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm block mb-2">Gender</label>
+                  <select
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm({...editForm, gender: e.target.value})}
+                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  >
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm block mb-2">Photo URL</label>
+                <input
+                  type="url"
+                  value={editForm.photoUrl}
+                  onChange={(e) => setEditForm({...editForm, photoUrl: e.target.value})}
+                  placeholder="https://example.com/photo.jpg"
+                  className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm block mb-2">About</label>
+                <textarea
+                  value={editForm.about}
+                  onChange={(e) => setEditForm({...editForm, about: e.target.value})}
+                  rows="3"
+                  className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm block mb-2">Skills (comma separated)</label>
+                <input
+                  type="text"
+                  value={editForm.skills}
+                  onChange={(e) => setEditForm({...editForm, skills: e.target.value})}
+                  placeholder="JavaScript, React, Node.js"
+                  className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-pink-500 to-orange-500 text-white py-3 rounded font-semibold hover:from-pink-600 hover:to-orange-600 transition"
+              >
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-4 z-50" onClick={() => setShowPasswordModal(false)}>
+          <div className="bg-zinc-800 rounded-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-zinc-700 p-4 flex items-center justify-between">
+              <h3 className="text-white text-xl font-bold">Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
+              {passwordError && (
+                <div className="p-3 bg-red-500/20 border border-red-500 rounded text-red-400 text-sm">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="p-3 bg-green-500/20 border border-green-500 rounded text-green-400 text-sm">
+                  {passwordSuccess}
+                </div>
+              )}
+
+              <div>
+                <label className="text-gray-400 text-sm block mb-2">Old Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.oldPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})}
+                  className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm block mb-2">New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  required
+                  minLength="6"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm block mb-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                  className="w-full bg-zinc-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  required
+                  minLength="6"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-pink-500 to-orange-500 text-white py-3 rounded font-semibold hover:from-pink-600 hover:to-orange-600 transition"
+              >
+                Update Password
+              </button>
             </form>
           </div>
         </div>
