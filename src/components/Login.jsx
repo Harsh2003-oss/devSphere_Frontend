@@ -98,11 +98,7 @@ localStorage.setItem('userId', data.user._id); // Add this line
             </button>
           </form>
 
-          <div className="text-center mt-6">
-            <Link to="/forgot-password" className="text-gray-400 text-sm hover:text-white">
-              Forgot password?
-            </Link>
-          </div>
+        
 
           <div className="text-center mt-8 pt-6 border-t border-zinc-800">
             <p className="text-gray-400 text-sm">
