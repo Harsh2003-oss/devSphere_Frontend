@@ -7,6 +7,8 @@ import Profile from './components/Profile'
 import Connections from './components/Connections'
 import Chat from './components/Chat'
 import Messages from './components/Messages'
+import Matches from './components/Matches'
+import Likes from './components/Likes'
 
 
 const App = () => {
@@ -22,6 +24,9 @@ const App = () => {
          <Route path='/connections' element = {<Connections />} />
          <Route path = '/chat/:userId' element={<Chat />} />
          <Route path = '/messages' element={<Messages />} />
+         <Route path = '/matches' element = {<Matches /> } />
+         <Route path="/likes" element={<Likes />} />
+
      </Routes>
      </BrowserRouter> 
     </>

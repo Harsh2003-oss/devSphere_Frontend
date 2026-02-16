@@ -38,6 +38,7 @@ const Feed = () => {
     }
   };
 
+  // ✅ UPDATED FUNCTION
   const sendRequest = async (status) => {
     if (currentIndex >= users.length) return;
 
@@ -45,16 +46,22 @@ const Feed = () => {
     const token = localStorage.getItem('token');
 
     try {
-      await fetch(`http://localhost:3000/api/request/send/${status}/${userId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `http://localhost:3000/api/send/${status}/${userId}`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      // Show alert
-      if (status === "interested") {
-        setActionAlert("Liked ❤️");
+      const data = await response.json();
+
+      if (data.match) {
+        setActionAlert("🎉 It's a Match!");
       } else {
-        setActionAlert("Ignored ❌");
+        setActionAlert(
+          status === "interested" ? "Liked ❤️" : "Ignored ❌"
+        );
       }
 
       setTimeout(() => {
@@ -62,6 +69,7 @@ const Feed = () => {
       }, 1500);
 
       setCurrentIndex(prev => prev + 1);
+
     } catch (err) {
       console.error(err);
     }
@@ -137,13 +145,34 @@ const Feed = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-pink-500 to-orange-500 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src="dev_logo.jpeg" alt="" className="w-8 h-8 rounded-4xl" />
-          <span className="text-white font-bold text-xl">devSphere</span>
-        </div>
-      </div>
+   {/* Header */}
+<div className="bg-gradient-to-r from-pink-500 to-orange-500 px-4 py-3 flex items-center justify-between">
+
+  {/* Left Side - Logo */}
+  <div className="flex items-center gap-2">
+    <img src="dev_logo.jpeg" alt="logo" className="w-8 h-8 rounded-full" />
+    <span className="text-white font-bold text-xl">devSphere</span>
+  </div>
+
+  {/* Right Side - Navigation */}
+  <div className="flex items-center gap-1 ml-auto">
+    <button
+      onClick={() => navigate("/matches")}
+      className="text-white font-semibold px-3 py-1 hover:bg-white/20 rounded-md transition"
+    >
+      Matches
+    </button>
+
+    <button
+      onClick={() => navigate("/likes")}
+      className="text-white font-semibold px-3 py-1 hover:bg-white/20 rounded-md transition"
+    >
+      Likes
+    </button>
+  </div>
+
+</div>
+
 
       {/* Cards */}
       <div className="max-w-md mx-auto px-4 py-6">
@@ -178,7 +207,7 @@ const Feed = () => {
                   }
                 />
 
-                {/* ✅ Match Badge */}
+                {/* Match Badge */}
                 {currentUser.matchScore !== undefined && (
                   <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg">
                     <span
@@ -265,18 +294,14 @@ const Feed = () => {
               onClick={() => sendRequest('ignored')}
               className="w-14 h-14 rounded-full border-2 border-red-500 flex items-center justify-center hover:bg-red-500/10 transition"
             >
-              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+              ✕
             </button>
 
             <button
               onClick={() => sendRequest('interested')}
-              className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 flex items-center justify-center shadow-lg hover:shadow-xl transition"
+              className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 flex items-center justify-center shadow-lg hover:shadow-xl transition text-white text-2xl"
             >
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
-              </svg>
+              ❤️
             </button>
           </div>
         )}
