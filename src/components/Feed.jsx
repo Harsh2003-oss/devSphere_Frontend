@@ -23,9 +23,12 @@ const Feed = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/feed?page=1&limit=20', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        'http://localhost:3000/api/feed?page=1&limit=20',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -38,7 +41,12 @@ const Feed = () => {
     }
   };
 
-  // ✅ UPDATED FUNCTION
+  // ✅ LOGOUT FUNCTION
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   const sendRequest = async (status) => {
     if (currentIndex >= users.length) return;
 
@@ -64,17 +72,16 @@ const Feed = () => {
         );
       }
 
-      setTimeout(() => {
-        setActionAlert(null);
-      }, 1500);
+      setTimeout(() => setActionAlert(null), 1500);
 
-      setCurrentIndex(prev => prev + 1);
-
+      setCurrentIndex((prev) => prev + 1);
+      setDragOffset(0);
     } catch (err) {
       console.error(err);
     }
   };
 
+  // Drag Handlers
   const handleMouseDown = (e) => {
     setIsDragging(true);
     setDragStart(e.clientX);
@@ -88,16 +95,14 @@ const Feed = () => {
   const handleMouseUp = () => {
     if (!isDragging) return;
 
-    if (dragOffset > 100) {
-      sendRequest('interested');
-    } else if (dragOffset < -100) {
-      sendRequest('ignored');
-    }
+    if (dragOffset > 100) sendRequest('interested');
+    else if (dragOffset < -100) sendRequest('ignored');
 
     setIsDragging(false);
     setDragOffset(0);
   };
 
+  // Touch
   const handleTouchStart = (e) => {
     setIsDragging(true);
     setDragStart(e.touches[0].clientX);
@@ -111,11 +116,8 @@ const Feed = () => {
   const handleTouchEnd = () => {
     if (!isDragging) return;
 
-    if (dragOffset > 100) {
-      sendRequest('interested');
-    } else if (dragOffset < -100) {
-      sendRequest('ignored');
-    }
+    if (dragOffset > 100) sendRequest('interested');
+    else if (dragOffset < -100) sendRequest('ignored');
 
     setIsDragging(false);
     setDragOffset(0);
@@ -124,7 +126,7 @@ const Feed = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+        <div className="text-white text-lg">Loading...</div>
       </div>
     );
   }
@@ -134,55 +136,60 @@ const Feed = () => {
   const opacity = 1 - Math.abs(dragOffset) / 300;
 
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-zinc-900 relative overflow-hidden">
 
-      {/* 🔥 Top Alert */}
+      {/* Background Glow */}
+      <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] bg-pink-500/20 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-[-100px] right-[-100px] w-[300px] h-[300px] bg-orange-500/20 rounded-full blur-3xl"></div>
+
+      {/* Alert */}
       {actionAlert && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-xl shadow-lg text-lg font-semibold">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-black/80 text-white px-6 py-3 rounded-xl">
             {actionAlert}
           </div>
         </div>
       )}
 
-   {/* Header */}
-<div className="bg-gradient-to-r from-pink-500 to-orange-500 px-4 py-3 flex items-center justify-between">
+      {/* ✅ HEADER (UPDATED) */}
+      <div className="bg-gradient-to-r from-pink-500 to-orange-500 px-4 py-3 flex items-center justify-between">
 
-  {/* Left Side - Logo */}
-  <div className="flex items-center gap-2">
-    <img src="dev_logo.jpeg" alt="logo" className="w-8 h-8 rounded-full" />
-    <span className="text-white font-bold text-xl">devSphere</span>
-  </div>
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <img src="dev_logo.jpeg" alt="logo" className="w-8 h-8 rounded-full" />
+          <span className="text-white font-bold text-xl">devSphere</span>
+        </div>
 
-  {/* Right Side - Navigation */}
-  <div className="flex items-center gap-1 ml-auto">
-    <button
-      onClick={() => navigate("/matches")}
-      className="text-white font-semibold px-3 py-1 hover:bg-white/20 rounded-md transition"
-    >
-      Matches
-    </button>
+        {/* Navigation */}
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate("/connections")} className="text-white px-3 py-1 hover:bg-white/20 rounded">
+            Connections
+          </button>
+          <button onClick={() => navigate("/matches")} className="text-white px-3 py-1 hover:bg-white/20 rounded">
+            Matches
+          </button>
+          <button onClick={() => navigate("/likes")} className="text-white px-3 py-1 hover:bg-white/20 rounded">
+            Likes
+          </button>
 
-    <button
-      onClick={() => navigate("/likes")}
-      className="text-white font-semibold px-3 py-1 hover:bg-white/20 rounded-md transition"
-    >
-      Likes
-    </button>
-  </div>
+          {/* ✅ LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+            className="bg-black/30 hover:bg-black/50 text-white px-3 py-1 rounded-md ml-2"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
-</div>
-
-
-      {/* Cards */}
+      {/* Card Section */}
       <div className="max-w-md mx-auto px-4 py-6">
         {currentIndex < users.length ? (
-          <div className="relative" style={{ height: '70vh' }}>
+          <div className="relative h-[70vh]">
 
             <div
-              className="absolute top-0 left-0 right-0 bg-zinc-800 rounded-xl overflow-hidden shadow-xl cursor-grab active:cursor-grabbing"
+              className="absolute w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
               style={{
-                height: '100%',
                 transform: `translateX(${dragOffset}px) rotate(${rotate}deg)`,
                 opacity: isDragging ? opacity : 1,
                 transition: isDragging ? 'none' : 'transform 0.3s ease',
@@ -196,110 +203,58 @@ const Feed = () => {
               onTouchEnd={handleTouchEnd}
             >
 
-              {/* Image */}
               <div className="relative h-3/5">
                 <img
                   src={currentUser.photoUrl}
-                  alt={currentUser.firstName}
+                  alt=""
                   className="w-full h-full object-cover"
-                  onError={(e) =>
-                    e.target.src = 'https://geographyandyou.com/images/user-profile.png'
-                  }
                 />
 
-                {/* Match Badge */}
-                {currentUser.matchScore !== undefined && (
-                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg">
-                    <span
-                      className={`font-bold text-lg ${
-                        currentUser.matchScore > 70
-                          ? 'text-green-400'
-                          : currentUser.matchScore > 40
-                          ? 'text-yellow-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {currentUser.matchScore}% Match
-                    </span>
-                  </div>
-                )}
-
-                {/* Swipe Indicators */}
-                {dragOffset > 50 && (
-                  <div className="absolute top-8 left-8 border-4 border-green-500 text-green-500 font-bold text-2xl px-4 py-2 rounded-lg rotate-[-15deg]">
-                    LIKE
-                  </div>
-                )}
-                {dragOffset < -50 && (
-                  <div className="absolute top-8 right-8 border-4 border-red-500 text-red-500 font-bold text-2xl px-4 py-2 rounded-lg rotate-[15deg]">
-                    NOPE
-                  </div>
-                )}
-
-                {/* Name Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
+                <div className="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent p-4">
                   <h2 className="text-white text-3xl font-bold">
-                    {currentUser.firstName} {currentUser.lastName}
-                    {currentUser.age && (
-                      <span className="font-normal"> {currentUser.age}</span>
-                    )}
+                    {currentUser.firstName} {currentUser.lastName}{" "}
+                    <span className="text-lg">{currentUser.age}</span>
                   </h2>
                 </div>
               </div>
 
-              {/* Info */}
-              <div className="p-4 overflow-y-auto" style={{ height: '40%' }}>
-                {currentUser.about && (
-                  <p className="text-gray-300 text-sm mb-3">
-                    {currentUser.about}
-                  </p>
-                )}
+              <div className="p-4">
+                <p className="text-gray-300 text-sm mb-3">
+                  {currentUser.about}
+                </p>
 
-                {currentUser.skills?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {currentUser.skills.map((skill, i) => (
-                      <span
-                        key={i}
-                        className="bg-zinc-700 text-gray-300 px-3 py-1 rounded-full text-xs"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {currentUser.skills?.map((skill, i) => (
+                    <span
+                      key={i}
+                      className="bg-pink-500/20 text-pink-300 px-3 py-1 rounded-full text-xs"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-20">
-            <h2 className="text-white text-2xl font-bold mb-2">
-              That's everyone!
-            </h2>
-            <p className="text-gray-400 mb-6">
-              Check back later for new people
-            </p>
-            <button
-              onClick={fetchFeed}
-              className="bg-gradient-to-r from-pink-500 to-orange-500 text-white px-6 py-3 rounded-full font-semibold"
-            >
-              Refresh
-            </button>
+          <div className="text-center py-20 text-white">
+            No more users
           </div>
         )}
 
-        {/* Bottom Buttons */}
+        {/* Buttons */}
         {currentIndex < users.length && (
           <div className="flex justify-center gap-6 mt-6">
             <button
               onClick={() => sendRequest('ignored')}
-              className="w-14 h-14 rounded-full border-2 border-red-500 flex items-center justify-center hover:bg-red-500/10 transition"
+              className="w-14 h-14 rounded-full border-2 border-red-500"
             >
               ✕
             </button>
 
             <button
               onClick={() => sendRequest('interested')}
-              className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 flex items-center justify-center shadow-lg hover:shadow-xl transition text-white text-2xl"
+              className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 text-white text-2xl"
             >
               ❤️
             </button>
